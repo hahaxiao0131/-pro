@@ -4,83 +4,58 @@ import { UserInfoStore } from '../stores/modules/UserinfoStore';
 /**
  * 微信登录工具函数
  * @param {Object} options - 配置选项
- * @param {boolean} options.navigateToMy - 登录成功后是否跳转到我的页面，默认为true
- * @param {Function} options.onSuccess - 登录成功后的回调函数
- * @param {Function} options.onError - 登录失败后的回调函数
+ * @param {boolean} options.rememberMe - 是否记住登录状态
+ * @param {boolean} options.navigateToMy - 登录成功后是否跳转到我的页面
  * @returns {Promise<Object>} 返回登录结果
  */
 export const wechatLogin = async (options = {}) => {
   const {
-    navigateToMy = true,
-    onSuccess,
-    onError
+    rememberMe = false,
+    navigateToMy = true
   } = options;
 
   try {
-    // 将 uni.login 封装为 Promise, 以便使用 await
+    // 获取微信登录凭证
     const loginData = await new Promise((resolve, reject) => {
       uni.login({
         provider: 'weixin',
         success: (data) => resolve(data),
-        fail: (err) => reject(err)
+        fail: (err) => reject(new Error(`获取微信授权失败: ${err.errMsg}`))
       });
     });
-    
-    // 使用 await 等待 Userlogin 完成
-    const response = await Userlogin(loginData.errMsg, loginData.code);
-    
-    if (response.code === 200) {
-      // 登录成功
-      uni.showToast({
-        title: '登录成功',
-        icon: 'success'
-      });
-      
+
+    // 调用登录接口（传递rememberMe参数）
+    const response = await Userlogin(loginData.code, rememberMe);
+
+    if (response.code === 200 && response.success) {
+      uni.showToast({ title: '登录成功', icon: 'success' });
+
       const userInfoStore = UserInfoStore();
-      userInfoStore.setUserInfo(response.data.userInfo); // 存储用户信息
-      uni.setStorageSync('token', response.data.token); // 存储 Token
-      
-      // 执行成功回调
-      if (onSuccess && typeof onSuccess === 'function') {
-        onSuccess(response);
+      userInfoStore.setUserInfo(response.data.userInfo);
+
+      // 根据rememberMe设置存储有效期
+      if (rememberMe) {
+        // 记住登录：存储7天（单位：秒）
+        uni.setStorageSync('token', response.data.token);
+        uni.setStorageSync('tokenExpiry', Date.now() + 7 * 24 * 60 * 60 * 1000);
+      } else {
+        // 不记住：会话级存储（关闭应用失效）
+        uni.setStorageSync('token', response.data.token);
+        uni.removeStorageSync('tokenExpiry'); // 不设置过期时间
       }
-      
-      // 跳转到我的页面
+
       if (navigateToMy) {
-        uni.switchTab({
-          url: '/pages/my/my'
-        });
+        uni.switchTab({ url: '/pages/my/my' });
       }
-      
       return response;
     } else {
-      // 处理登录失败情况
-      const errorMessage = response.message || '登录失败，请重试';
-      uni.showToast({
-        title: errorMessage,
-        icon: 'none'
-      });
-      
-      // 执行错误回调
-      if (onError && typeof onError === 'function') {
-        onError(response);
-      }
-      
-      return response;
+      const errorMsg = response.message || '登录失败，请重试';
+      uni.showToast({ title: errorMsg, icon: 'none' });
+      throw new Error(errorMsg);
     }
   } catch (error) {
     console.error('微信登录失败', error);
-    const errorMessage = '登录失败，请重试';
-    uni.showToast({
-      title: errorMessage,
-      icon: 'none'
-    });
-    
-    // 执行错误回调
-    if (onError && typeof onError === 'function') {
-      onError(error);
-    }
-    
+    uni.showToast({ title: error.message || '登录失败', icon: 'none' });
     throw error;
   }
 };

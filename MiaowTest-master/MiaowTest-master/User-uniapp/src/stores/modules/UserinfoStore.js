@@ -1,48 +1,27 @@
-import { ref, computed } from "vue"
+import { ref } from 'vue';
 import { defineStore } from 'pinia';
 
-export const UserInfoStore = defineStore('userinfo',()=>{
-    //信息
-    const userInfo = ref([])
+// 响应式用户信息
+const userInfo = ref({});
+// 登录状态标识
+const isLoggedIn = ref(false);
 
-    //登录保存
-    const setUserInfo = (val)=>{
-        userInfo.value = val
-    }
-
-    //清除
-    const clearUserInfo = ()=>{
-        userInfo.value = undefined
-    }
-
-    // 登录状态检查函数
-    const isLoggedIn = computed(() => {
-        return !!userInfo.value && Object.keys(userInfo.value).length > 0;
-    })
-
-    return {
-        userInfo,
-        setUserInfo,
-        clearUserInfo,
-        isLoggedIn
-    }
-},
-//持久化
-    {
-        //持久化的配置同时支持小程序和网页端
-        persist:{
-            storage:{
-                getItem(key){
-                    return typeof window !== 'undefined' 
-                        ? localStorage.getItem(key) 
-                        : uni.getStorageSync(key);
-                },
-                setItem(key,value){
-                    return typeof window !== 'undefined' 
-                    ? localStorage.setItem(key,value)
-                    : uni.setStorageSync(key,value);
-                },
-            }
+export const useUserInfoStore = defineStore('userInfo', {
+    state: () => ({
+        userInfo: userInfo.value,
+        isLoggedIn: isLoggedIn.value
+    }),
+    actions: {
+        // 设置用户信息（登录时调用）
+        setUserInfo(val) {
+            userInfo.value = val;
+            isLoggedIn.value = true; // 标记为已登录
+        },
+        // 清除用户信息（退出登录时调用）
+        clearUserInfo() {
+            userInfo.value = {}; // 清空用户信息
+            isLoggedIn.value = false; // 标记为未登录
         }
-    }
-)
+    },
+    persist: true // 持久化存储（需配合pinia-plugin-persistedstate）
+});
