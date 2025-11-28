@@ -1,0 +1,242 @@
+// src/styles/pc.scss
+
+// ==============================================================================
+// == 1. 移动端完全隐藏
+// ==============================================================================
+@media screen and (max-width: 1023px) {
+  // 在屏幕宽度小于1024px时，隐藏整个页面内容
+  body {
+    display: none !important;
+  }
+}
+
+// ==============================================================================
+// == 2. PC端全局样式
+// ==============================================================================
+@media screen and (min-width: 1024px) {
+  // 基础重置与全局样式
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  // 主容器背景
+  #app {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #f5f7fa;
+  }
+
+  // 固定的顶部导航栏样式
+  .navbar-pc {
+    height: 60px;
+    background-color: #1677ff;
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .logo {
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    // 全局内容区样式，确保与导航栏保持一致距离
+    .page-content {
+      padding-top: 20px !important;
+      max-width: 1440px;
+      margin: 96px auto 0 !important; // 改为与导航栏高度(96px)一致
+      padding-left: 40px;
+      padding-right: 40px;
+    }
+
+    .search-box {
+      width: 500px;
+      height: 40px;
+      background: white;
+      border-radius: 20px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+
+      input {
+        border: none;
+        outline: none;
+        width: 100%;
+        height: 100%;
+        font-size: 14px;
+        margin-left: 10px;
+      }
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+
+      .action-btn {
+        cursor: pointer;
+        padding: 6px 12px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+      }
+    }
+  }
+
+  // 主内容区通用布局（侧边栏 + 内容）
+  .main-container-pc {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 5px 40px; // 最小化内边距
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 30px;
+    margin-top: 40px !important; // 保持与主内容区一致
+  }
+
+  // 侧边栏样式
+  .sidebar-pc {
+    background: white;
+    border-radius: 8px;
+    padding: 20px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    height: fit-content; // 高度自适应内容
+
+    .sidebar-item {
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background-color: #f0f7ff;
+        color: #1677ff;
+      }
+
+      &.active {
+        background-color: #e6f7ff;
+        color: #1890ff;
+        font-weight: 500;
+        border-left: 3px solid #1890ff;
+      }
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background-color: #f0f0f0;
+      margin: 10px 0;
+    }
+  }
+
+  // 内容区卡片样式
+  .content-pc {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  // 强制隐藏所有移动端特有的元素及底部栏
+  .mobile-only,
+  .tab-bar-mobile,
+  .navbar-mobile,
+  uni-tab-bar,
+  [data-v-uni-tab-bar],
+    // 自定义底部练习栏（MyWrongView）
+  .bottom-practice-container,
+    // PracticeView 中的底部栏相关元素
+  .up-tabbar,
+  .bottom,
+  [data-v-361a7b5e],
+    // UserBankView 中的底部按钮栏
+  .bottom-button {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    position: static !important;
+    z-index: -1 !important;
+  }
+
+  // 确保页面级样式不冲突
+  ::v-deep uni-tab-bar {
+    display: none !important;
+  }
+
+  // ============================================================================
+  // == 3. 首页 (index.vue) 专属PC布局优化
+  // ============================================================================
+  #pages-index-index {
+    // 主内容区顶部内边距，确保不被导航栏遮挡
+    .main-content {
+       padding-top: 5px !important; // 最小化内边距
+       max-width: 1440px;
+       margin: 40px auto 0 !important; // 这是当前截图中的间距值
+       padding-left: 40px;
+       padding-right: 40px;
+     }
+
+
+    // 轮播图与导航区域采用网格布局
+    .card-container {
+      display: grid;
+      grid-template-columns: 2fr 1fr; // 轮播图占2/3，导航占1/3
+      gap: 20px;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    // 导航区域纵向排列并分散对齐
+    .navigation {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+    }
+
+    // 推荐练习和我的题库区域样式优化
+    .hot-exam, .my-question-bank {
+      padding: 30px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+
+    // 标题区域下边距增大
+    .header-section {
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    // 标题字体大小调整
+    .hot-exam-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    // 分段控制器（我的题库/收藏考试）宽度调整
+    ::v-deep .uview-subsection {
+      width: 300px;
+    }
+  }
+}
