@@ -1,27 +1,45 @@
-import { ref } from 'vue';
 import { defineStore } from 'pinia';
+import { ref } from 'vue';
 
-// 响应式用户信息
-const userInfo = ref({});
-// 登录状态标识
-const isLoggedIn = ref(false);
+// 初始化状态
+const initUserInfo = {
+    uid: '',
+    username: '',
+    avatar: '',
+    role: ''
+};
 
 export const useUserInfoStore = defineStore('userInfo', {
     state: () => ({
-        userInfo: userInfo.value,
-        isLoggedIn: isLoggedIn.value
+        userInfo: { ...initUserInfo },
+        isLoggedIn: false
     }),
     actions: {
         // 设置用户信息（登录时调用）
-        setUserInfo(val) {
-            userInfo.value = val;
-            isLoggedIn.value = true; // 标记为已登录
+        setUserInfo(userData) {
+            this.userInfo = { ...this.userInfo, ...userData };
+            this.isLoggedIn = true;
         },
         // 清除用户信息（退出登录时调用）
         clearUserInfo() {
-            userInfo.value = {}; // 清空用户信息
-            isLoggedIn.value = false; // 标记为未登录
+            this.userInfo = { ...initUserInfo };
+            this.isLoggedIn = false;
+        },
+        // 从本地存储恢复状态（初始化时调用）
+        restoreFromStorage() {
+            const storedUser = uni.getStorageSync('userInfo');
+            const token = uni.getStorageSync('token');
+            if (storedUser && token) {
+                this.setUserInfo(storedUser);
+            }
         }
     },
-    persist: true // 持久化存储（需配合pinia-plugin-persistedstate）
+    persist: {
+        key: 'userInfoStorage',
+        storage: {
+            getItem: (key) => uni.getStorageSync(key),
+            setItem: (key, value) => uni.setStorageSync(key, value),
+            removeItem: (key) => uni.removeStorageSync(key)
+        }
+    }
 });

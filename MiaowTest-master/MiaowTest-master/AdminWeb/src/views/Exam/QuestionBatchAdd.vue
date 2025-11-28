@@ -1,250 +1,81 @@
 <template>
-    <div class="container">
-            <XWelcome
-                v-show="!isSendValue"
-                title="欢迎使用AI智能录题，可向该科目题类型下添加大量题目！"
-                description="大模型智能体应用，使用自然语言输入即可识别题目类型与结构化输出，实现题目自动处理与添加">
-                <template #welcomeExtra>
-                   <QuestionDisplay />
-                </template>
-            </XWelcome>
-        <div :class="isSendValue ? 'active-sender':'default-sender'">
-            <XEditorSender
-                ref="editorRef"
-                @user-submit="handleUserSend"
-                placeholder="请在此处输入题目内容~"
-                :isShowHeaderFlog="true"
-                :iSshowPrefixFlog="true"
-                :iSclearable="true"
-                :isSenderloading="isSenderloading"
-                HeaderLeftTitle="💯当前科目及其题目信息~"
-                HeaderSelfWrapclassName="my-header-self-wrap"
-                HeaderSelfContentclassName="my-header-self-content">
-                <template #sender-prefix>
-                    <el-button
-                        color="#626aef"
-                        :dark="true"
-                        @click="openCloseHeader">
-                        打开/关闭头部
-                    </el-button>
-                </template>
-                <template #HeaderSelfContent>
-                    <el-card style="border-radius: 10px" shadow="never">
-                        <el-descriptions
-                            :column="4">
-                            <el-descriptions-item
-                                label="科目名称">
-                            <el-tag type="success">{{ appStore.examInfo.name }}</el-tag>
-                        </el-descriptions-item>
-                        <el-descriptions-item
-                            label="题目类别" >
-                            <el-tag type="warning">{{ getCategoryName(appStore.examInfo.category) }}</el-tag>
-                        </el-descriptions-item>
-                        <el-descriptions-item
-                            label="题目数量" >
-                            <el-tag type="primary">{{ appStore.currentQuestionTotal }}</el-tag>
-                        </el-descriptions-item>
-                        <el-descriptions-item
-                            label="创建时间">
-                            <el-tag type="info">{{ formatTime.getTime2(appStore.examInfo.createdTime) }}</el-tag>
-                        </el-descriptions-item>
-                        </el-descriptions>
-                    </el-card>
-                </template>
-            </XEditorSender>
-        </div>
-        <div class="chat-container"  v-show="isSendValue">
-            <div v-for="(message,index) in chatHistory" :key="index" class="message-wrapper">
-                <XBubble
-                    :content="message.content"
-                    :placement="message.role === 'user' ?'end': 'start'"
-                    :bubbleHeaderTitle="message.role === 'user' ? appStore.userInfo.username : message.role"
-                    :isLoading="message.isLoading || false"
-                    :bubbleAvatarSrc="message.role ==='user' ? `http://${escconfig.serverHost}:${escconfig.serverPort}` + appStore.userInfo.avatar :'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png'"
-                    :typingsteps="4"
-                    :typinginterval="30"
-                    typingsuffix="💩"
-                    :isFog="true"/>
-            </div>
-            <div v-if="response && response.data && response.data.data.length > 0">
-                <el-card style="border-radius: 10px ;width: 650px;">
-                <el-table :data="response.data.data" style="width: 600px;">
-                    <el-table-column type="index" label="序号" width="70" :index="(index) => index + 1"/>
-                    <el-table-column label="题目题干" width="250">
-                        <template #default="scope">
-                            <div v-html="scope.row.stem"></div>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="题目答案" width="180">
-                        <template #default="scope">
-                            <template v-if="scope.row.Type === 1">
-                                <el-tag type="success">{{ formatSelectAnswer(scope.row.options) }}</el-tag>
-                            </template>
-                            <template v-else-if="scope.row.Type === 2">
-                                <div  v-for="(option, index) in scope.row.options" :key="index">
-                                    <el-tag class="blank-tag">空{{ index + 1 }}</el-tag>
-                                    <span class="blank-content">{{ option.content }}</span>
-                                </div>
-                            </template>
-                            <template v-else-if="scope.row.Type ===3 ">
-                            <el-tag :type="scope.row.answer == 1 ? 'success' : 'danger'">
-                                    {{ scope.row.answer === 1 ? '正确' : '错误' }}
-                                </el-tag>
-                            </template>
-                            <template v-else-if="scope.row.Type===4">
-                                <el-tag type="info" @click="handleLooked(scope.row.content)">查看答案</el-tag>
-                            </template>
-                        </template>
-                    </el-table-column>
-                    <el-table-column label="操作">
-                    <template #default="scope">
-                        <el-button
-                            type="success"
-                            plain
-                            @click="handlePreview(scope.row)">
-                            预览
-                        </el-button>
-                    </template>
-                </el-table-column>
-               </el-table>
-               </el-card>
-            </div>
-        </div>
-        <QuestionPreview
-        v-model="PreviewdialogVisible"
-        :Data="QuestionData"/>
-    </div>
+  <div class="batch-add-container">
+    <el-card>
+      <div slot="header">
+        <span>批量添加题目</span>
+      </div>
+      <el-form ref="formRef" :model="form" label-width="100px">
+        <el-form-item label="所属考试" prop="examId">
+          <el-select v-model="form.examId" placeholder="请选择考试">
+            <el-option v-for="exam in exams" :key="exam.id" :label="exam.name" :value="exam.id"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="题目分类" prop="category">
+          <el-input v-model="form.category" placeholder="请输入题目分类"></el-input>
+        </el-form-item>
+        <el-form-item label="题目内容" prop="message">
+          <el-textarea v-model="form.message" rows="6" placeholder="请输入批量题目内容（每行一道题）"></el-textarea>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="handleBatchAdd">批量添加</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+  </div>
 </template>
+
 <script setup>
-import XEditorSender  from '@/components/Element-plus-x/XEditorSender .vue';
-import { useAppStore } from '@/stores';
-import {getCategoryName} from '@/util/formatExamname'
-import formatTime from '@/util/formatTime'
-import { ref,defineAsyncComponent} from 'vue';
-import XWelcome from '@/components/Element-plus-x/XWelcome.vue';
-import XBubble from '@/components/Element-plus-x/XBubble.vue';
+import { ref, reactive } from 'vue';
 import { modelappBatchaddQuestion } from '@/API/LLM/modelappAPI';
-import escconfig from '../../config/esc.config';
-import { useRoute } from 'vue-router';
-import QuestionDisplay from '@/components/Exam/QuestionDisplay.vue';
-import { formatSelectAnswer } from '@/util/formatAnswer';
-import handleLooked from '@/util/CheckInfo'
+import { ElMessage } from 'element-plus';
 
+// 表单数据
+const form = reactive({
+  examId: '',
+  category: '',
+  message: ''
+});
 
-// 动态导入较大的组件
-const QuestionPreview = defineAsyncComponent(() =>
-    import('@/components/Exam/QuestionPreview.vue')
-)
+// 考试列表（实际项目中从API获取）
+const exams = ref([
+  { id: 1, name: '期末测试' },
+  { id: 2, name: '模拟考试' }
+]);
 
-const appStore = useAppStore();
-const isSendValue = ref(false);// 是否发送消息
-const chatHistory = ref([]);// 聊天记录
-const isLoading = ref(false);// 发送按钮加载中状态
-const editorRef = ref();// 编辑器引用
-const isSenderloading = ref(false);// 发送按钮加载中状态Sender
-const route = useRoute();
-const QuestionType = appStore.examInfo.category;// 题目类型
-const QuestionData = ref(null);// 题目数据
-const PreviewdialogVisible = ref(false)// 预览对话框
+// 表单引用
+const formRef = ref();
 
-// 提交方法
-const response = ref(null);
-const handleUserSend = async (data) => {
-    if(data){
-        // 添加用户消息
-        chatHistory.value.push({role: 'user', content: data.text});
-        isSenderloading.value = true; // 开始加载
-        editorRef.value?.clearContent();// 清空编辑器内容
-        isSendValue.value = true;
+// 批量添加处理
+const handleBatchAdd = async () => {
+  // 表单验证
+  if (!form.examId) {
+    ElMessage.warning('请选择所属考试');
+    return;
+  }
+  if (!form.message.trim()) {
+    ElMessage.warning('请输入题目内容');
+    return;
+  }
 
-        // 立即添加一个 loading 状态的 AI 消息
-        chatHistory.value.push({
-            role: '题目添加AI助手',
-            content: '正在思考中...',
-            isLoading: true
-        });
-
-        //  AI 回复的过程
-        isLoading.value = true;
-        try {
-            response.value = await modelappBatchaddQuestion(chatHistory.value,route.params.id,QuestionType);
-            if(response.value.code===200){
-                // 成功获取 AI 回复后更新消息
-                chatHistory.value[chatHistory.value.length - 1] = {// 直接修改最后一个消息
-                    role:'题目添加AI助手',
-                    content: response.value.data.message + `(插入数量为：${response.value.data.count})`,
-                    isLoading: false
-                };
-            }
-        } catch (error) {
-            console.error('获取 AI 回复失败:', error);
-            // 发生错误时更新消息
-            chatHistory.value[chatHistory.value.length - 1] = {
-                role: 'assistant',
-                content: '抱歉，获取回复时出现错误',
-                isLoading: false
-            };
-        } finally {
-           isSenderloading.value = false; // 结束加载
-        }
+  try {
+    // 调用API
+    const res = await modelappBatchaddQuestion(form.message, form.examId, form.category);
+    if (res?.code === 200 || res?.ActionType === 'OK') {
+      ElMessage.success('批量添加成功');
+      // 清空表单
+      form.message = '';
+    } else {
+      ElMessage.error(res?.message || '添加失败');
     }
-}
-// 打开头部方法
-const openCloseHeader = () => {
-    editorRef.value.openCloseHeader();
+  } catch (error) {
+    console.error('批量添加错误:', error);
+    ElMessage.error('网络错误，请重试');
+  }
 };
-//预览
-const handlePreview = (row) => {
-  PreviewdialogVisible.value = true
-  QuestionData.value = row
-}
 </script>
+
 <style scoped>
-.container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
+.batch-add-container {
+  padding: 20px;
 }
-
-
-.default-sender{
-    width: 100%;
-    max-width: 1100px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-    margin-top: 30px;
-}
-.active-sender{
-    width: 100%;
-    max-width: 1100px;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-    position: fixed;
-    bottom: 5px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 999;
-}
-
-.chat-container {
-    display: flex;
-    flex-direction: column;
-    gap: 30px;
-    width: 100%;
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 20px;
-    height: calc(100vh - 300px);
-    overflow-y: auto;
-    margin-bottom: 90px;
-}
-
-
 </style>
